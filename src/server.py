@@ -84,6 +84,7 @@ async def landing():
 
 
 @app.get("/api/health")
+@app.get("/health")
 async def health():
     return {"status": "ok", "service": APP_TITLE, "version": APP_VERSION}
 
@@ -167,6 +168,7 @@ def _run_workflow(candidate_name: str, target_role: str, jd: str, resume: str) -
 
 
 @app.post("/api/evaluate")
+@app.post("/evaluate")
 async def evaluate(
     candidate_name: Optional[str] = Form("Candidate"),
     target_role: Optional[str] = Form("Software Engineer"),
@@ -184,6 +186,7 @@ async def evaluate(
 
 # Alias route with Jeff naming — both work
 @app.post("/api/v1/assessment")
+@app.post("/v1/assessment")
 async def assessment_alias(
     candidate_name: Optional[str] = Form("Candidate"),
     target_role: Optional[str] = Form("Software Engineer"),

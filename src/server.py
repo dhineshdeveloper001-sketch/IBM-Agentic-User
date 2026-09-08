@@ -12,7 +12,7 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -45,6 +45,11 @@ if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
+@app.get("/favicon.ico")
+async def favicon():
+    return Response(status_code=204)
+
+
 @app.get("/", response_class=HTMLResponse)
 async def landing():
     idx = STATIC_DIR / "index.html"
@@ -59,23 +64,36 @@ async def health():
 
 
 def _extract_resume_text(resume_text: Optional[str], pdf: Optional[UploadFile]) -> str:
-    if pdf and getattr(pdf, "filename", None):
+    extracted = ""
+    # Check if a genuine PDF file with a name was uploaded
+    if pdf and getattr(pdf, "filename", None) and pdf.filename.strip():
         dest = UPLOADS_DIR / pdf.filename  # type: ignore[arg-type]
         try:
             with open(dest, "wb") as out:
                 shutil.copyfileobj(pdf.file, out)
-            return read_pdf_text(dest)
+            if dest.stat().st_size > 0:
+                extracted = read_pdf_text(dest)
         except Exception as exc:  # noqa: BLE001
-            log.error("pdf read failed: %s", exc)
-            raise HTTPException(status_code=400, detail=f"Could not read PDF: {exc}") from exc
+            log.warning("PDF read failed: %s", exc)
+            # If plain text resume is also provided, we can fallback to it
+            if not (resume_text and resume_text.strip()):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Uploaded PDF could not be read ({exc}). Please upload a valid PDF document or paste resume text.",
+                ) from exc
         finally:
             try:
                 if dest.exists():
                     dest.unlink()
             except Exception:
                 pass
+
+    if extracted and extracted.strip():
+        return extracted.strip()
+
     if resume_text and resume_text.strip():
         return resume_text.strip()
+
     return ""
 
 
@@ -134,7 +152,7 @@ async def evaluate(
 ):
     resume = _extract_resume_text(resume_text, resume_pdf)
     if not resume:
-        raise HTTPException(status_code=400, detail="Upload a PDF or paste resume text.")
+        raise HTTPException(status_code=400, detail="Please upload a valid resume PDF or paste resume text.")
     if not job_description.strip():
         raise HTTPException(status_code=400, detail="Job description cannot be empty.")
     return _run_workflow(candidate_name or "Candidate", target_role or "Software Engineer", job_description, resume)
@@ -151,7 +169,7 @@ async def assessment_alias(
 ):
     resume = _extract_resume_text(resume_text, resume_pdf)
     if not resume:
-        raise HTTPException(status_code=400, detail="Upload a PDF or paste resume text.")
+        raise HTTPException(status_code=400, detail="Please upload a valid resume PDF or paste resume text.")
     if not job_description.strip():
         raise HTTPException(status_code=400, detail="Job description cannot be empty.")
     return _run_workflow(candidate_name or "Candidate", target_role or "Software Engineer", job_description, resume)

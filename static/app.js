@@ -96,7 +96,6 @@ Projects: Flask + SQLite inventory API (JWT); BeautifulSoup campus scraper.`;
       if (dark) dark.classList.toggle("is-active", t === "dark");
     };
 
-    // Default to dark mode for Black & Red aesthetic
     const saved = localStorage.getItem("talentlens_theme") || "dark";
     apply(saved);
 
@@ -137,7 +136,6 @@ Projects: Flask + SQLite inventory API (JWT); BeautifulSoup campus scraper.`;
     this.els.role.value = "";
     this.els.jd.value = "";
     this.els.cv.value = "";
-    this.els.file.value = "";
     this.clearFileLabel();
     this.resetSteps();
     if (this.els.badge) {
@@ -148,7 +146,7 @@ Projects: Flask + SQLite inventory API (JWT); BeautifulSoup campus scraper.`;
     if (this.els.results) this.els.results.style.display = "none";
     if (this.els.copy) this.els.copy.style.display = "none";
     this.els.name.focus();
-    this.showToast("Cleared inputs");
+    this.showToast("Cleared all inputs");
   }
 
   clearFileLabel() {
@@ -162,11 +160,23 @@ Projects: Flask + SQLite inventory API (JWT); BeautifulSoup campus scraper.`;
     const { drop, file, dropText } = this.els;
     if (!drop || !file) return;
 
-    drop.addEventListener("click", () => file.click());
+    drop.addEventListener("click", (e) => {
+      if (e.target !== file) {
+        file.click();
+      }
+    });
+
+    drop.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        file.click();
+      }
+    });
 
     file.addEventListener("change", () => {
-      if (file.files.length) {
-        dropText.innerHTML = `Loaded: <strong>${this.esc(file.files[0].name)}</strong> (${Math.round(file.files[0].size / 1024)} KB)`;
+      if (file.files && file.files.length > 0) {
+        const f = file.files[0];
+        dropText.innerHTML = `Loaded: <strong>${this.esc(f.name)}</strong> (${Math.round(f.size / 1024)} KB)`;
       }
     });
 
@@ -185,9 +195,10 @@ Projects: Flask + SQLite inventory API (JWT); BeautifulSoup campus scraper.`;
     });
 
     drop.addEventListener("drop", (e) => {
-      if (e.dataTransfer.files.length) {
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         file.files = e.dataTransfer.files;
-        dropText.innerHTML = `Loaded: <strong>${this.esc(e.dataTransfer.files[0].name)}</strong> (${Math.round(e.dataTransfer.files[0].size / 1024)} KB)`;
+        const f = e.dataTransfer.files[0];
+        dropText.innerHTML = `Loaded: <strong>${this.esc(f.name)}</strong> (${Math.round(f.size / 1024)} KB)`;
       }
     });
   }
@@ -217,8 +228,8 @@ Projects: Flask + SQLite inventory API (JWT); BeautifulSoup campus scraper.`;
       if (!this.lastPayload?.dossier_markdown) return;
       await navigator.clipboard.writeText(this.lastPayload.dossier_markdown);
       
-      const prev = this.els.copyText.textContent;
-      this.els.copyText.textContent = "Copied to Clipboard!";
+      const prev = this.els.copyText ? this.els.copyText.textContent : "Copy Dossier";
+      if (this.els.copyText) this.els.copyText.textContent = "Copied to Clipboard!";
       this.showToast("Dossier copied to clipboard!");
       setTimeout(() => {
         if (this.els.copyText) this.els.copyText.textContent = prev;
@@ -234,7 +245,34 @@ Projects: Flask + SQLite inventory API (JWT); BeautifulSoup campus scraper.`;
 
   async onSubmit(e) {
     e.preventDefault();
-    const fd = new FormData(this.els.form);
+    
+    // Check validation
+    const candidateName = this.els.name.value.trim();
+    const targetRole = this.els.role.value.trim();
+    const jd = this.els.jd.value.trim();
+    const cvText = this.els.cv.value.trim();
+    const hasPdf = this.els.file.files && this.els.file.files.length > 0;
+
+    if (!jd) {
+      alert("Please enter a Job Description.");
+      return;
+    }
+
+    if (!cvText && !hasPdf) {
+      alert("Please attach a Resume PDF or paste plain text resume content.");
+      return;
+    }
+
+    const fd = new FormData();
+    fd.append("candidate_name", candidateName || "Candidate");
+    fd.append("target_role", targetRole || "Software Engineer");
+    fd.append("job_description", jd);
+    if (cvText) {
+      fd.append("resume_text", cvText);
+    }
+    if (hasPdf) {
+      fd.append("resume_pdf", this.els.file.files[0]);
+    }
     
     this.els.submit.disabled = true;
     this.els.submit.innerHTML = `
@@ -251,7 +289,6 @@ Projects: Flask + SQLite inventory API (JWT); BeautifulSoup campus scraper.`;
       this.els.badge.textContent = "Running";
     }
 
-    // Step simulation timers while waiting for server response
     const t1 = setTimeout(() => { this.setStep("step1", "is-done"); this.setStep("step2", "is-active"); }, 750);
     const t2 = setTimeout(() => { this.setStep("step2", "is-done"); this.setStep("step3", "is-active"); }, 1650);
     const t3 = setTimeout(() => { this.setStep("step3", "is-done"); this.setStep("step4", "is-active"); }, 2850);
@@ -262,7 +299,7 @@ Projects: Flask + SQLite inventory API (JWT); BeautifulSoup campus scraper.`;
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `Server returned ${res.status}`);
+        throw new Error(err.detail || `Server returned status ${res.status}`);
       }
 
       const data = await res.json();
@@ -275,14 +312,15 @@ Projects: Flask + SQLite inventory API (JWT); BeautifulSoup campus scraper.`;
       }
 
       this.renderResults(data);
-      this.showToast("Assessment complete! Dossier generated.");
+      this.showToast("Assessment complete! Dossier ready.");
     } catch (err) {
       this.resetSteps();
       if (this.els.badge) {
         this.els.badge.className = "tracker__badge is-failed";
         this.els.badge.textContent = "Failed";
       }
-      alert(`Assessment Error: ${err.message}`);
+      this.showToast(`Error: ${err.message}`);
+      alert(`Assessment Notice: ${err.message}`);
     } finally {
       this.els.submit.disabled = false;
       this.els.submit.innerHTML = `
@@ -334,7 +372,7 @@ Projects: Flask + SQLite inventory API (JWT); BeautifulSoup campus scraper.`;
 
     const rec = m.recommendation || data.hiring_recommendation || "Review Required";
     this.els.verdict.textContent = `Verdict: ${rec}`;
-    this.els.summary.textContent = data.candidate_summary || "Candidate assessment overview generated based on provided profile and job specifications.";
+    this.els.summary.textContent = data.candidate_summary || "Candidate evaluation generated based on profile analysis and spec alignment.";
 
     // Render Matched Skills
     const ok = this.els.ok;

@@ -11,8 +11,6 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, TypedDict
 
-from langgraph.graph import END, StateGraph
-
 from src.llm import inference
 from src.rag import VectorStore, split_segments
 from src.tools import identify_skills, score_profile
@@ -267,21 +265,38 @@ def synthesize_dossier_node(state):  # pragma: no cover
 
 # ── Assemble graph ───────────────────────────────────────────────
 
-def build_workflow():
-    g = StateGraph(HiringState)
-    g.add_node("ingest", ingest_profile)
-    g.add_node("retrieve", build_evidence)
-    g.add_node("assess", assess_fit)
-    g.add_node("question_pack", craft_questions)
-    g.add_node("report", compile_report)
+class PipelineRunner:
+    """Zero-dependency direct pipeline runner with identical LangGraph invoke signature."""
+    def invoke(self, state: dict[str, Any]) -> dict[str, Any]:
+        s = dict(state)
+        s.update(ingest_profile(s))
+        s.update(build_evidence(s))
+        s.update(assess_fit(s))
+        s.update(craft_questions(s))
+        s.update(compile_report(s))
+        return s
 
-    g.set_entry_point("ingest")
-    g.add_edge("ingest", "retrieve")
-    g.add_edge("retrieve", "assess")
-    g.add_edge("assess", "question_pack")
-    g.add_edge("question_pack", "report")
-    g.add_edge("report", END)
-    return g.compile()
+
+def build_workflow():
+    try:
+        from langgraph.graph import END, StateGraph
+        g = StateGraph(HiringState)
+        g.add_node("ingest", ingest_profile)
+        g.add_node("retrieve", build_evidence)
+        g.add_node("assess", assess_fit)
+        g.add_node("question_pack", craft_questions)
+        g.add_node("report", compile_report)
+
+        g.set_entry_point("ingest")
+        g.add_edge("ingest", "retrieve")
+        g.add_edge("retrieve", "assess")
+        g.add_edge("assess", "question_pack")
+        g.add_edge("question_pack", "report")
+        g.add_edge("report", END)
+        return g.compile()
+    except Exception as exc:  # noqa: BLE001
+        log.warning("LangGraph compile fallback to direct pipeline: %s", exc)
+        return PipelineRunner()
 
 
 def create_recruitment_agent():  # pragma: no cover — compat shim

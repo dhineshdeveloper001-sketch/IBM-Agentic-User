@@ -20,11 +20,18 @@ OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "https://ollama.com").rstrip
 OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "gpt-oss:120b").strip()
 
 # --- Server ---
+def _int_env(name: str, default: int) -> int:
+    val = os.getenv(name, "")
+    try:
+        return int(val.strip()) if val and val.strip() else default
+    except Exception:
+        return default
+
 HOST: str = os.getenv("HOST", "127.0.0.1")
-PORT: int = int(os.getenv("PORT", "8000"))
+PORT: int = _int_env("PORT", 8000)
 
 # --- Storage ---
-MAX_UPLOAD_MB: int = int(os.getenv("MAX_UPLOAD_MB", "10"))
+MAX_UPLOAD_MB: int = _int_env("MAX_UPLOAD_MB", 10)
 ALLOWED_EXTS = {".pdf"}
 
 def _resolve_upload_dir() -> Path:

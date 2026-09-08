@@ -73,3 +73,5 @@ Jeff/
 - Quiz Day 3 on LMS, attendance QR x2/day, IBM CEP exam prep access
 
 — Jeff build, TNSDC IBM Agentic AI Track, 31 Aug–4 Sep 2026.
+
+Project Link: https://ibm-agentic-user.vercel.app/

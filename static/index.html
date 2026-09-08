@@ -168,7 +168,7 @@
               <span class="field__label">Resume Document</span>
               <span class="field__sublabel">PDF supported</span>
             </div>
-            <div class="uploader" id="dropArea" tabindex="0" role="button" aria-label="Upload Resume PDF">
+            <label class="uploader" id="dropArea" for="resumePdf">
               <div class="uploader__icon-box">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               </div>
@@ -176,8 +176,8 @@
                 <span class="uploader__text" id="dropText"><strong>Choose PDF File</strong> or drag &amp; drop here</span>
                 <span class="uploader__sub">PDF format supported · Maximum 10MB</span>
               </div>
-              <input id="resumePdf" name="resume_pdf" type="file" accept=".pdf" hidden />
-            </div>
+              <input id="resumePdf" name="resume_pdf" type="file" accept=".pdf" style="display:none" />
+            </label>
           </label>
 
           <label class="field">

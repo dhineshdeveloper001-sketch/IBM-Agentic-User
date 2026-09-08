@@ -160,19 +160,6 @@ Projects: Flask + SQLite inventory API (JWT); BeautifulSoup campus scraper.`;
     const { drop, file, dropText } = this.els;
     if (!drop || !file) return;
 
-    drop.addEventListener("click", (e) => {
-      if (e.target !== file) {
-        file.click();
-      }
-    });
-
-    drop.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        file.click();
-      }
-    });
-
     file.addEventListener("change", () => {
       if (file.files && file.files.length > 0) {
         const f = file.files[0];
@@ -195,6 +182,8 @@ Projects: Flask + SQLite inventory API (JWT); BeautifulSoup campus scraper.`;
     });
 
     drop.addEventListener("drop", (e) => {
+      e.preventDefault();
+      drop.classList.remove("is-dragover");
       if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         file.files = e.dataTransfer.files;
         const f = e.dataTransfer.files[0];

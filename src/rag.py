@@ -19,19 +19,33 @@ from sklearn.metrics.pairwise import cosine_similarity
 # ---------- PDF ----------
 
 def read_pdf_text(pdf_path: str | Path) -> str:
-    """Extract and normalise text from a PDF, handling multi-column artefacts."""
-    reader = PdfReader(str(pdf_path))
+    """Extract and normalise text from a PDF, handling multi-column artefacts and fallbacks."""
     parts: list[str] = []
-    for pg in reader.pages:
-        raw = pg.extract_text() or ""
-        if not raw.strip():
-            continue
-        # Re-join hyphenated line-breaks and normalise whitespace
-        txt = re.sub(r"(\w)-\n(\w)", r"\1\2", raw)
-        txt = re.sub(r"(\w)\n\s*(\w)", r"\1 \2", txt)
-        txt = re.sub(r"[ \t]+", " ", txt)
-        txt = re.sub(r"\n{3,}", "\n\n", txt)
-        parts.append(txt.strip())
+    try:
+        reader = PdfReader(str(pdf_path))
+        for pg in reader.pages:
+            raw = pg.extract_text() or ""
+            if not raw.strip():
+                continue
+            # Re-join hyphenated line-breaks and normalise whitespace
+            txt = re.sub(r"(\w)-\n(\w)", r"\1\2", raw)
+            txt = re.sub(r"(\w)\n\s*(\w)", r"\1 \2", txt)
+            txt = re.sub(r"[ \t]+", " ", txt)
+            txt = re.sub(r"\n{3,}", "\n\n", txt)
+            parts.append(txt.strip())
+    except Exception as exc:
+        # Fallback: attempt reading text/html content if plain text was renamed to .pdf
+        try:
+            with open(pdf_path, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+                clean = re.sub(r"<[^>]+>", " ", content)
+                clean = re.sub(r"\s+", " ", clean).strip()
+                if len(clean) > 30:
+                    return clean
+        except Exception:
+            pass
+        raise exc
+
     return "\n\n".join(parts)
 
 

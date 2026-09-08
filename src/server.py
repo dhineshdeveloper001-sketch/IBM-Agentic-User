@@ -8,6 +8,7 @@ and clearer separation of upload handling.
 from __future__ import annotations
 
 import logging
+import os
 import shutil
 from pathlib import Path
 from typing import Optional
@@ -17,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from src.config import APP_TITLE, APP_VERSION, HOST, PORT, UPLOADS_DIR
+from src.config import APP_TITLE, APP_VERSION, HOST, PORT, PROJECT_ROOT, UPLOADS_DIR
 from src.graph import hiring_workflow
 from src.rag import read_pdf_text
 
@@ -33,16 +34,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Static assets
-ROOT = Path(__file__).resolve().parents[1]
-STATIC_DIR = ROOT / "static"
-try:
-    STATIC_DIR.mkdir(parents=True, exist_ok=True)
-except Exception:
-    pass
+# Resolve static directory across Local and Serverless runtimes
+def _resolve_static_dir() -> Path:
+    candidates = [
+        PROJECT_ROOT / "static",
+        Path(__file__).resolve().parents[1] / "static",
+        Path.cwd() / "static",
+        Path("/var/task/static"),
+    ]
+    for c in candidates:
+        if c.is_dir():
+            return c
+    return PROJECT_ROOT / "static"
 
-if STATIC_DIR.exists():
-    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+STATIC_DIR = _resolve_static_dir()
+
+if STATIC_DIR.is_dir():
+    try:
+        app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    except Exception:
+        pass
 
 
 @app.get("/favicon.ico")
@@ -52,10 +63,24 @@ async def favicon():
 
 @app.get("/", response_class=HTMLResponse)
 async def landing():
-    idx = STATIC_DIR / "index.html"
-    if not idx.exists():
-        return HTMLResponse("<h1>TalentLens initialising…</h1>", status_code=200)
-    return FileResponse(idx)
+    candidates = [
+        STATIC_DIR / "index.html",
+        PROJECT_ROOT / "static" / "index.html",
+        PROJECT_ROOT / "index.html",
+        Path.cwd() / "static" / "index.html",
+        Path.cwd() / "index.html",
+        Path("/var/task/static/index.html"),
+        Path("/var/task/index.html"),
+    ]
+    for idx in candidates:
+        if idx.is_file():
+            try:
+                html_text = idx.read_text(encoding="utf-8", errors="ignore")
+                return HTMLResponse(content=html_text, status_code=200)
+            except Exception:
+                pass
+    return HTMLResponse("<!DOCTYPE html><html><head><title>TalentLens</title></head><body><h1>TalentLens Agentic HR Copilot</h1><p>API is running.</p></body></html>", status_code=200)
+
 
 
 @app.get("/api/health")
@@ -75,7 +100,6 @@ def _extract_resume_text(resume_text: Optional[str], pdf: Optional[UploadFile]) 
                 extracted = read_pdf_text(dest)
         except Exception as exc:  # noqa: BLE001
             log.warning("PDF read failed: %s", exc)
-            # If plain text resume is also provided, we can fallback to it
             if not (resume_text and resume_text.strip()):
                 raise HTTPException(
                     status_code=400,

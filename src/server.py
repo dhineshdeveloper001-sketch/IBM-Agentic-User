@@ -34,6 +34,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def vercel_path_rewrite_middleware(request, call_next):
+    matched_path = (
+        request.headers.get("x-matched-path")
+        or request.headers.get("x-original-url")
+        or request.headers.get("x-forwarded-uri")
+        or request.headers.get("x-vercel-matched-path")
+    )
+    if matched_path and request.scope.get("path") in ("/api/index.py", "/api", "/api/"):
+        request.scope["path"] = matched_path
+    return await call_next(request)
+
 # Resolve static directory across Local and Serverless runtimes
 def _resolve_static_dir() -> Path:
     candidates = [
@@ -175,6 +187,8 @@ def _run_workflow(candidate_name: str, target_role: str, jd: str, resume: str) -
 @app.post("/api/evaluate")
 @app.post("/evaluate")
 @app.post("/api/index.py/evaluate")
+@app.post("/api/index.py")
+@app.post("/api")
 async def evaluate(
     candidate_name: Optional[str] = Form("Candidate"),
     target_role: Optional[str] = Form("Software Engineer"),

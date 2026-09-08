@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TalentLens — AI HR Recruitment Assistant</title>
+  <meta name="description" content="Next-Generation AI HR Recruitment Copilot for candidate screening, multi-dimensional fit scoring, gap analysis, and automated interview question kits." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <!-- Header / Top Navigation Bar -->
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="topbar__left">
+        <div class="logo-wrap">
+          <div class="logo" aria-hidden="true">
+            <span>TL</span>
+          </div>
+          <div class="topbar__brand">
+            <div class="wordmark-row">
+              <div class="wordmark">Talent<span>Lens</span></div>
+              <span class="badge-version">v2.0</span>
+            </div>
+            <div class="submark">Agentic HR Copilot · LangGraph + RAG</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="topbar__center">
+        <span class="live-indicator"></span>
+        <span>Ollama Agent Engine Active</span>
+      </div>
+
+      <div class="topbar__right">
+        <!-- Sample Presets -->
+        <div class="presets-group" role="group" aria-label="Sample Presets">
+          <button class="btn btn--ghost btn--sm" id="btnPresetSenior" type="button" title="Load Senior AI Architect Profile">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Senior AI
+          </button>
+          <button class="btn btn--ghost btn--sm" id="btnPresetJunior" type="button" title="Load Junior Developer Profile">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            Junior
+          </button>
+          <button class="btn btn--ghost btn--sm" id="btnReset" type="button" title="Clear All Fields">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            Reset
+          </button>
+        </div>
+
+        <!-- Light / Dark Mode Toggle -->
+        <div class="theme-switch" role="group" aria-label="Theme Switcher">
+          <button class="theme-switch__btn is-active" id="themeDark" type="button" aria-label="Dark theme">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            Dark
+          </button>
+          <button class="theme-switch__btn" id="themeLight" type="button" aria-label="Light theme">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            Light
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- App Layout -->
+  <div class="app-shell">
+    <!-- Left Sidebar: Pipeline Monitor -->
+    <aside class="workflow-rail" id="pipelineCard" aria-label="Workflow Progress Monitor">
+      <div class="rail__head">
+        <div class="rail__head-title">
+          <div class="rail__icon-badge">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <span class="rail__label">Agent Pipeline</span>
+        </div>
+        <div class="rail__head-actions">
+          <span class="tracker__badge" id="pipelineStatusBadge">Idle</span>
+          <button class="rail__toggle" id="pipelineHeader" type="button" aria-label="Toggle pipeline view" title="Toggle workflow steps">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <ol class="rail__steps" id="pipelineStatus">
+        <li class="tracker__step" id="step1">
+          <div class="step__num-box">1</div>
+          <div class="step__details">
+            <span class="step__label">Ingest &amp; Tokenize</span>
+            <span class="step__sub">Extract resume skills &amp; JD specs</span>
+          </div>
+        </li>
+        <li class="tracker__step" id="step2">
+          <div class="step__num-box">2</div>
+          <div class="step__details">
+            <span class="step__label">Vector RAG Search</span>
+            <span class="step__sub">Semantic similarity match</span>
+          </div>
+        </li>
+        <li class="tracker__step" id="step3">
+          <div class="step__num-box">3</div>
+          <div class="step__details">
+            <span class="step__label">Fit &amp; Gap Scoring</span>
+            <span class="step__sub">Coverage ratio &amp; risk matrix</span>
+          </div>
+        </li>
+        <li class="tracker__step" id="step4">
+          <div class="step__num-box">4</div>
+          <div class="step__details">
+            <span class="step__label">4-Round Interview Studio</span>
+            <span class="step__sub">Parallel question synthesis</span>
+          </div>
+        </li>
+        <li class="tracker__step" id="step5">
+          <div class="step__num-box">5</div>
+          <div class="step__details">
+            <span class="step__label">Executive Dossier</span>
+            <span class="step__sub">Compile final assessment brief</span>
+          </div>
+        </li>
+      </ol>
+
+      <div class="rail__hint">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span>LangGraph multi-threaded orchestration. Uploaded files are processed in-memory and auto-cleaned.</span>
+      </div>
+    </aside>
+
+    <!-- Main Workspace Studio -->
+    <main class="wizard" id="appContainer">
+      <!-- Input Column: Candidate & Job Parameters -->
+      <section class="panel panel--input" id="inputCard">
+        <div class="panel__head">
+          <div class="panel__title-row">
+            <div class="panel__icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div>
+              <h2 class="panel__title">Candidate &amp; Job Spec</h2>
+              <p class="panel__desc">Configure profile inputs and target requirements for deep evaluation</p>
+            </div>
+          </div>
+          <span class="pill-step">STAGE 1</span>
+        </div>
+
+        <form id="evaluationForm" class="form">
+          <div class="grid2">
+            <label class="field">
+              <span class="field__label">Candidate Name</span>
+              <input id="candidateName" name="candidate_name" type="text" value="Alex Chen" required placeholder="e.g. Alex Chen" />
+            </label>
+            <label class="field">
+              <span class="field__label">Target Role</span>
+              <input id="targetRole" name="target_role" type="text" value="Senior Agentic AI & Systems Engineer" required placeholder="e.g. Senior Software Engineer" />
+            </label>
+          </div>
+
+          <label class="field">
+            <span class="field__label">Job Description / Requirements</span>
+            <textarea id="jobDescription" name="job_description" rows="5" required placeholder="Paste the job description, core responsibilities, tech stack, and qualification criteria…"></textarea>
+          </label>
+
+          <label class="field">
+            <div class="field__label-row">
+              <span class="field__label">Resume Document</span>
+              <span class="field__sublabel">PDF supported</span>
+            </div>
+            <div class="uploader" id="dropArea" tabindex="0" role="button" aria-label="Upload Resume PDF">
+              <div class="uploader__icon-box">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </div>
+              <div class="uploader__content">
+                <span class="uploader__text" id="dropText"><strong>Choose PDF File</strong> or drag &amp; drop here</span>
+                <span class="uploader__sub">PDF format supported · Maximum 10MB</span>
+              </div>
+              <input id="resumePdf" name="resume_pdf" type="file" accept=".pdf" hidden />
+            </div>
+          </label>
+
+          <label class="field">
+            <div class="field__label-row">
+              <span class="field__label">Or Paste Plain Resume Text</span>
+              <span class="field__sublabel">Alternative to PDF</span>
+            </div>
+            <textarea id="resumeText" name="resume_text" rows="5" placeholder="Candidate summary, experience history, skills, and projects…"></textarea>
+          </label>
+
+          <button id="btnSubmit" type="submit" class="btn btn--primary btn--block">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span class="btn__text">Execute AI Assessment</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- Output Column: Live Hiring Brief & Interview Kit -->
+      <section class="panel panel--results" id="resultsCard">
+        <div class="panel__head">
+          <div class="panel__title-row">
+            <div class="panel__icon">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
+            <div>
+              <h2 class="panel__title">Executive Hiring Dossier</h2>
+              <p class="panel__desc">RAG-grounded match metrics, risk radar &amp; 4-round interview pack</p>
+            </div>
+          </div>
+          <button class="btn btn--outline btn--sm" id="btnCopyDossier" style="display:none" type="button" title="Copy Full Markdown Dossier">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <span id="copyBtnText">Copy Dossier</span>
+          </button>
+        </div>
+
+        <!-- Initial Placeholder State -->
+        <div class="empty-state" id="emptyStateBox">
+          <div class="empty-state__icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+          </div>
+          <div class="empty-state__title">Ready for Candidate Evaluation</div>
+          <p class="empty-state__text">Fill in the candidate profile on the left or select a preset, then click <strong>Execute AI Assessment</strong> to generate the comprehensive evaluation dossier.</p>
+          <div class="empty-state__features">
+            <span class="empty-pill">⚡ Vector RAG Scoring</span>
+            <span class="empty-pill">🎯 Skill Gap Radar</span>
+            <span class="empty-pill">📋 4-Round Question Pack</span>
+            <span class="empty-pill">📊 Rubric Guidelines</span>
+          </div>
+        </div>
+
+        <!-- Live Evaluation Results -->
+        <div id="resultsContent" style="display:none">
+          <!-- Fit Score & Summary Card -->
+          <div class="score-card">
+            <div class="score-card__left">
+              <div class="score" id="scoreValue">0%</div>
+              <div class="score__label">Fit Score</div>
+            </div>
+            <div class="score-card__right">
+              <div class="verdict-row">
+                <span class="verdict" id="recBanner">Recommendation —</span>
+              </div>
+              <p class="summary" id="candidateSummaryText"></p>
+              
+              <div class="meta-group">
+                <div class="meta__label">Matched Strengths</div>
+                <div class="chips" id="matchedSkillsRow"></div>
+              </div>
+
+              <div class="meta-group">
+                <div class="meta__label">Gaps &amp; Growth Areas</div>
+                <div class="chips" id="missingSkillsRow"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4-Round Interview Tabs -->
+          <div class="tabs-header">
+            <div class="tabs-label">INTERVIEW QUESTION PACK (4 ROUNDS)</div>
+            <div class="tabs" role="tablist">
+              <button class="tab is-active" data-round="round1" role="tab" type="button">R1 · Screen</button>
+              <button class="tab" data-round="round2" role="tab" type="button">R2 · Technical</button>
+              <button class="tab" data-round="round3" role="tab" type="button">R3 · Architecture</button>
+              <button class="tab" data-round="round4" role="tab" type="button">R4 · Behavioural</button>
+            </div>
+          </div>
+
+          <!-- Rendered Questions List -->
+          <div class="stack" id="questionsContainer"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
